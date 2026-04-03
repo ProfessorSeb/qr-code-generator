@@ -158,6 +158,19 @@ app.get('/', (req, res) => {
       font-size: 0.85rem;
       display: none;
     }
+    .built-with {
+      margin-top: 3rem;
+      text-align: center;
+      font-size: 0.7rem;
+      color: #444;
+      letter-spacing: 0.03em;
+    }
+    .built-with a {
+      color: #666;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .built-with a:hover { color: #999; }
   </style>
 </head>
 <body>
@@ -211,6 +224,10 @@ app.get('/', (req, res) => {
         <a class="btn-dl" id="dlSvg" download="qrcode.svg">↓ SVG</a>
         <button class="btn-dl" id="copyBtn" style="border:1px solid #2a2a2a;background:#1a1a1a;width:auto;margin:0">Copy PNG</button>
       </div>
+    </div>
+
+    <div class="built-with">
+      Built with AI agents · <a href="https://github.com/openclaw/openclaw" target="_blank" rel="noopener">#openclaw</a>
     </div>
   </div>
 
