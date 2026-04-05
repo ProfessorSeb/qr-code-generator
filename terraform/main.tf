@@ -13,6 +13,29 @@ resource "google_artifact_registry_repository" "qr_app" {
   description   = "Docker repository for QR code generator"
 }
 
+# --- Firestore for durable short-link storage ---
+resource "google_firestore_database" "default" {
+  project                     = var.project_id
+  name                        = "(default)"
+  location_id                 = var.firestore_location
+  type                        = "FIRESTORE_NATIVE"
+  concurrency_mode            = "OPTIMISTIC"
+  app_engine_integration_mode = "DISABLED"
+  delete_protection_state     = "DELETE_PROTECTION_ENABLED"
+}
+
+# --- Runtime identity ---
+resource "google_service_account" "qr_generator" {
+  account_id   = "qr-generator-sa"
+  display_name = "QR Generator runtime"
+}
+
+resource "google_project_iam_member" "firestore_user" {
+  project = var.project_id
+  role    = "roles/datastore.user"
+  member  = "serviceAccount:${google_service_account.qr_generator.email}"
+}
+
 # --- Cloud Run Service ---
 resource "google_cloud_run_service" "qr_generator" {
   name     = "qr-generator"
@@ -33,10 +56,26 @@ resource "google_cloud_run_service" "qr_generator" {
     }
 
     spec {
+      service_account_name  = google_service_account.qr_generator.email
       container_concurrency = 80
 
       containers {
         image = var.image
+
+        env {
+          name  = "SHORT_STORAGE"
+          value = "firestore"
+        }
+
+        env {
+          name  = "SHORT_BASE_URL"
+          value = "https://${var.short_domain}"
+        }
+
+        env {
+          name  = "FIRESTORE_COLLECTION"
+          value = "short_links"
+        }
 
         ports {
           container_port = 4242
@@ -57,6 +96,11 @@ resource "google_cloud_run_service" "qr_generator" {
     latest_revision = true
   }
 
+  depends_on = [
+    google_firestore_database.default,
+    google_project_iam_member.firestore_user,
+  ]
+
   lifecycle {
     ignore_changes = [
       metadata[0].annotations["run.googleapis.com/operation-id"],
@@ -72,9 +116,9 @@ resource "google_cloud_run_service_iam_member" "public" {
   member   = "allUsers"
 }
 
-# --- Cloud Run Domain Mapping ---
-resource "google_cloud_run_domain_mapping" "qr_domain" {
-  name     = var.domain
+# --- Cloud Run Domain Mappings ---
+resource "google_cloud_run_domain_mapping" "app_domain" {
+  name     = var.app_domain
   location = var.region
 
   metadata {
@@ -86,11 +130,33 @@ resource "google_cloud_run_domain_mapping" "qr_domain" {
   }
 }
 
-# --- Cloud DNS CNAME record in maniak-io project ---
-resource "google_dns_record_set" "qr_cname" {
+resource "google_cloud_run_domain_mapping" "short_domain" {
+  name     = var.short_domain
+  location = var.region
+
+  metadata {
+    namespace = var.project_id
+  }
+
+  spec {
+    route_name = google_cloud_run_service.qr_generator.name
+  }
+}
+
+# --- Cloud DNS CNAME records in maniak-io project ---
+resource "google_dns_record_set" "app_cname" {
   project      = var.dns_project_id
   managed_zone = var.dns_zone_name
-  name         = "${var.domain}."
+  name         = "${var.app_domain}."
+  type         = "CNAME"
+  ttl          = 300
+  rrdatas      = ["ghs.googlehosted.com."]
+}
+
+resource "google_dns_record_set" "short_cname" {
+  project      = var.dns_project_id
+  managed_zone = var.dns_zone_name
+  name         = "${var.short_domain}."
   type         = "CNAME"
   ttl          = 300
   rrdatas      = ["ghs.googlehosted.com."]

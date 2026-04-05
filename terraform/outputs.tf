@@ -3,9 +3,14 @@ output "cloud_run_url" {
   value       = google_cloud_run_service.qr_generator.status[0].url
 }
 
-output "custom_domain" {
-  description = "Custom domain for the service"
-  value       = "https://${var.domain}"
+output "app_domain" {
+  description = "Custom domain for the QR generator UI"
+  value       = "https://${var.app_domain}"
+}
+
+output "short_domain" {
+  description = "Custom domain for short redirects"
+  value       = "https://${var.short_domain}"
 }
 
 output "artifact_registry" {

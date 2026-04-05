@@ -22,14 +22,26 @@ variable "dns_zone_name" {
   default     = "maniak"
 }
 
-variable "domain" {
-  description = "Custom domain for the Cloud Run service"
+variable "app_domain" {
+  description = "Custom domain for the QR generator UI"
   type        = string
   default     = "qr.maniak.io"
+}
+
+variable "short_domain" {
+  description = "Custom domain for short redirects"
+  type        = string
+  default     = "s.maniak.io"
 }
 
 variable "image" {
   description = "Container image to deploy"
   type        = string
   default     = "us-central1-docker.pkg.dev/qr-maniak-io/qr-app/qr-generator:latest"
+}
+
+variable "firestore_location" {
+  description = "Firestore location"
+  type        = string
+  default     = "nam5"
 }
