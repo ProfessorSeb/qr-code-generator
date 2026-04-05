@@ -83,7 +83,7 @@ resource "google_cloud_run_service" "qr_generator" {
 
         resources {
           limits = {
-            memory = "256Mi"
+            memory = "128Mi"
             cpu    = "1"
           }
         }
